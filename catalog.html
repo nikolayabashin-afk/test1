@@ -1,2 +1,46 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Каталог — MedTech Systems</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;650;750;850&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css"></head><body><div class="topbar"><div class="container"><span data-company></span><span><b data-phone></b> · <a data-email></a></span></div></div>
-<header class="navbar"><div class="container nav-inner"><a class="logo" href="index.html"><span class="logo-mark">M+</span><span><span data-company></span><small>medical technology partner</small></span></a><button class="nav-toggle" aria-label="Открыть меню">☰</button><nav class="nav-links"><a href="index.html">Главная</a><a href="catalog.html">Каталог</a><a href="about.html">О компании</a><a href="projects.html">Проекты</a><a href="contacts.html">Контакты</a><a class="basket-link" href="catalog.html#basket">Подбор: <span id="basketCount">0</span></a></nav></div></header><main><section class="page-hero"><div class="container"><div class="breadcrumbs">Главная / Каталог</div><span class="eyebrow">оборудование и сервис</span><h1>Каталог решений</h1><p>Демо-каталог для медицинского интегратора. Карточки можно заменить реальными моделями, брендами, характеристиками и документацией.</p></div></section><section class="section"><div class="container"><div id="basket" class="basket-box"><h2>Подбор оборудования</h2><div id="basketPanel"></div></div><div class="filters"><button class="filter-btn active" data-filter="all">Все</button><button class="filter-btn" data-filter="diagnostics">Диагностика</button><button class="filter-btn" data-filter="therapy">Терапия</button><button class="filter-btn" data-filter="lab">Лаборатория</button><button class="filter-btn" data-filter="service">Сервис</button></div><div id="productGrid" class="grid-3"></div></div></section></main><footer class="footer"><div class="container footer-grid"><div><h3 data-company></h3><p>Демо-сайт для медицинской компании. Контент, контакты и юридические данные нужно заменить перед публикацией.</p></div><div><b>Разделы</b><a href="catalog.html">Каталог</a><a href="projects.html">Проекты</a><a href="about.html">О компании</a></div><div><b>Направления</b><a href="catalog.html#diagnostics">Диагностика</a><a href="catalog.html#therapy">Терапия</a><a href="catalog.html#lab">Лаборатория</a></div><div><b>Контакты</b><a data-email></a><a data-phone></a><a href="contacts.html">Оставить заявку</a></div></div></footer><script src="data.js"></script><script src="script.js"></script></body></html>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Каталог — MedCore Engineering</title>
+  <meta name="description" content="Демо-каталог медицинского оборудования и сервисных направлений.">
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body data-page="catalog">
+<a class="skip-link" href="#main">Перейти к содержанию</a>
+<header class="site-header"><div class="nav-shell"><a class="logo" href="index.html"><img src="assets/img/logo.svg" alt="MedCore Engineering"></a><nav class="main-nav" aria-label="Основная навигация"><a href="index.html" data-page="home">Главная</a><a href="catalog.html" data-page="catalog">Каталог</a><a href="projects.html" data-page="projects">Проекты</a><a href="about.html" data-page="about">О компании</a><a href="contacts.html" data-page="contacts">Контакты</a></nav><div class="nav-actions"><a class="phone-link" href="tel:+74950000000">+7 495 000-00-00</a><a class="btn btn-primary" href="contacts.html">Запросить КП</a><button class="menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false" data-menu-toggle><span></span></button></div></div></header>
+<main id="main">
+  <section class="page-hero">
+    <div class="container reveal">
+      <div class="breadcrumb"><a href="index.html">Главная</a><span>/</span><span>Каталог</span></div>
+      <span class="eyebrow">Каталог</span>
+      <h1>Оборудование и сервисные решения.</h1>
+      <p class="lead">Карточки ниже — демо-контент. Замените названия, характеристики и документы на реальные позиции вашей компании. Пользователь может добавить позиции в подборку и отправить запрос.</p>
+    </div>
+  </section>
+  <section class="section compact">
+    <div class="container">
+      <div class="filter-bar reveal" aria-label="Фильтры каталога">
+        <button class="filter-btn active" type="button" data-filter="all">Все</button>
+        <button class="filter-btn" type="button" data-filter="diagnostics">Лучевая диагностика</button>
+        <button class="filter-btn" type="button" data-filter="therapy">Лучевая терапия</button>
+        <button class="filter-btn" type="button" data-filter="lab">Лаборатории</button>
+        <button class="filter-btn" type="button" data-filter="service">Сервис</button>
+      </div>
+      <div class="cards-grid" data-render="products"></div>
+    </div>
+  </section>
+  <section class="section compact">
+    <div class="container">
+      <div class="dark-panel split reveal">
+        <div><span class="eyebrow">Подбор проекта</span><h2>Не знаете, какие позиции добавить?</h2><p class="lead">Отправьте цель проекта, тип учреждения, регион, сроки и требования к помещению — менеджер сможет собрать предварительный комплект.</p></div>
+        <div class="bento-col"><article class="bento-card"><h3>Для закупки</h3><p>Сравним несколько классов оборудования и подготовим структуру спецификации.</p></article><article class="bento-card gold"><h3>Для монтажа</h3><p>Проверим инженерные требования до доставки оборудования.</p></article><a class="btn btn-gold" href="contacts.html">Запросить консультацию</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="quote-bar" data-quote-bar><div class="quote-bar-head"><strong>Подборка</strong><button class="quote-count" type="button" data-quote-toggle data-quote-count aria-label="Открыть подборку">0</button></div><div class="quote-panel"><div class="quote-empty" data-quote-empty>Добавьте позиции из каталога.</div><div class="quote-items" data-quote-items></div><a class="btn btn-gold" href="contacts.html" data-request-quote>Запросить КП</a></div></div>
+<footer class="footer"><div class="container"><div class="footer-grid"><div><img class="footer-logo" src="assets/img/logo.svg" alt="MedCore Engineering"><p>Демо-сайт для медицинского B2B-поставщика. Все названия, контакты и юридические данные заменяемые.</p></div><div><h4>Разделы</h4><div class="footer-links"><a href="catalog.html">Каталог</a><a href="projects.html">Проекты</a><a href="about.html">О компании</a></div></div><div><h4>Направления</h4><div class="footer-links"><a href="catalog.html?category=diagnostics">Диагностика</a><a href="catalog.html?category=therapy">Терапия</a><a href="catalog.html?category=lab">Лаборатории</a></div></div><div><h4>Контакты</h4><div class="footer-links"><a href="tel:+74950000000">+7 495 000-00-00</a><a href="mailto:info@example.ru">info@example.ru</a><a href="contacts.html">Москва, демо-адрес</a></div></div></div><div class="footer-bottom"><span>© 2026 MedCore Engineering. Demo.</span><span>Static HTML/CSS/JS.</span></div></div></footer>
+<script src="assets/js/data.js"></script><script src="assets/js/app.js"></script>
+</body>
+</html>

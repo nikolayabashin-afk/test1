@@ -1,21 +1,18 @@
-# Image / video sources
+# Image and visual sources
 
-No images, logos, trademarks, or code were copied from the reference website.
+No external copyrighted images were copied from the reference website.
 
-Current version uses:
-- CSS gradients
-- self-made inline SVG medical-style illustration in `index.html`
-- CSS-generated abstract project map in `styles.css`
+## Local generated assets
 
-The `assets/img/` and `assets/video/` folders are included as placeholders for future local media.
+- `assets/img/logo.svg` — original placeholder logo created for this demo package.
+- `assets/img/hero-device.svg` — original abstract medical equipment illustration created for this demo package.
+- `assets/img/map-russia.svg` — original abstract demo map created for this demo package.
+- `assets/img/abstract-lab.svg` — original abstract laboratory illustration created for this demo package.
 
-Suggested free sources for future images:
-- Unsplash — check license and author attribution requirements before use
-- Pexels — check license and author attribution requirements before use
-- Wikimedia Commons — use only files with suitable licenses and document attribution
+## Partner logos
 
-If you add images/videos later, document each file here with:
-- filename
-- source URL
-- license
-- author/credit if required
+The partner/logo strip uses fictional placeholder names rendered as text pills. Replace them with real partner logos only if you have permission to use those logos.
+
+## Video assets
+
+`assets/video/` is included as an empty folder for future MP4 animations. If you add videos, document their source and license here.
