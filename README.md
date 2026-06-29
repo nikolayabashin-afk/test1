@@ -157,3 +157,15 @@ Important: the consent text contains placeholder operator details. Before public
 - contact email
 - storage period / internal processing details
 with the real company information and have the text checked by a lawyer if this will be used commercially.
+
+
+## Animation and cart count fix
+
+- Re-locked the homepage MRI and biopsy-forceps scroll animations.
+- Videos now have direct `src` attributes in addition to `data-src`, so the browser loads them reliably.
+- Replaced the scroll controller with a more robust native sticky scroll/currentTime controller.
+- Added strict CSS overrides to keep the animation sections sticky and visible after later layout edits.
+- Product cards now show the selected quantity directly on the card after adding to basket.
+- Product card cart button now displays a quantity badge.
+- Adding a product no longer automatically opens the cart drawer, so the card count remains visible.
+- Basket changes now refresh card quantities immediately.

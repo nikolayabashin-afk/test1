@@ -110,6 +110,50 @@ function cartCount(){
 function updateCartCount(){
   $$(".cart-count").forEach(el => el.textContent = cartCount());
 }
+function cartKeyFor(productId, variantIndex=0){
+  const p = getProduct(productId);
+  if(!p) return `${productId}::${variantIndex}`;
+  const v = p.variants[variantIndex] || p.variants[0] || {};
+  return `${productId}::${v.article || variantIndex}`;
+}
+function cartQtyFor(productId, variantIndex=0){
+  const key = cartKeyFor(productId, variantIndex);
+  const item = getCart().find(i => i.key === key);
+  return item ? Number(item.qty || 1) : 0;
+}
+function cartQtyForProduct(productId){
+  return getCart()
+    .filter(i => i.productId === productId)
+    .reduce((sum,i) => sum + Number(i.qty || 1), 0);
+}
+function cartQtyLabel(qty){
+  if(!qty) return "";
+  return currentLang === "en" ? `In basket: ${qty}` : `В корзине: ${qty}`;
+}
+function updateProductCardCartState(){
+  $$(".product-card").forEach(card => {
+    const productId = card.dataset.id;
+    const qty = cartQtyForProduct(productId);
+    card.classList.toggle("in-cart", qty > 0);
+
+    const badge = card.querySelector("[data-card-cart-badge]");
+    if(badge){
+      badge.textContent = cartQtyLabel(qty);
+      badge.hidden = qty <= 0;
+    }
+
+    const button = card.querySelector("[data-add-cart]");
+    if(button){
+      button.classList.toggle("in-cart", qty > 0);
+      button.setAttribute("aria-label", qty > 0 ? cartQtyLabel(qty) : t("add"));
+      const count = button.querySelector(".cart-btn-count");
+      if(count){
+        count.textContent = qty > 0 ? String(qty) : "";
+        count.hidden = qty <= 0;
+      }
+    }
+  });
+}
 function getProduct(id){
   return DATA.products.find(p => p.id === id);
 }
@@ -136,12 +180,15 @@ function addToCart(productId, variantIndex=0, qty=1){
     });
   }
   saveCart(cart);
-  showToast(t("added"));
-  openCart();
+  updateCartCount();
+  updateProductCardCartState();
+  showToast(qty > 0 ? `${t("added")} · ${cartQtyLabel(cartQtyForProduct(productId))}` : t("added"));
 }
 function removeCartItem(key){
   saveCart(getCart().filter(item => item.key !== key));
   renderCartItems();
+  updateCartCount();
+  updateProductCardCartState();
 }
 function setCartQty(key, delta){
   const cart = getCart();
@@ -150,10 +197,14 @@ function setCartQty(key, delta){
   item.qty = Math.max(1, Number(item.qty || 1) + delta);
   saveCart(cart);
   renderCartItems();
+  updateCartCount();
+  updateProductCardCartState();
 }
 function clearCart(){
   saveCart([]);
   renderCartItems();
+  updateCartCount();
+  updateProductCardCartState();
 }
 function cartItemName(item){
   return currentLang === "en" ? (item.nameEn || item.nameRu) : item.nameRu;
@@ -303,6 +354,7 @@ function closeCart(){
 
 function initCommonUI(){
   updateCartCount();
+  updateProductCardCartState();
   document.addEventListener("click", (e) => {
     const langBtn = e.target.closest("[data-lang-toggle]");
     if(langBtn){
@@ -501,7 +553,8 @@ function renderHome(){
             class="mri-video big-scroll-video"
             muted
             playsinline
-            preload="metadata"
+            preload="auto"
+            src="assets/video/mri-new-scrub.mp4"
             poster="assets/video/mri-new-poster.jpg"
             data-src="assets/video/mri-new-scrub.mp4"
             aria-label="Scroll-driven product animation">
@@ -601,7 +654,8 @@ function forcepsScrollHero(cat){
             class="product-scroll-video forceps-scroll-video big-scroll-video"
             muted
             playsinline
-            preload="metadata"
+            preload="auto"
+            src="assets/video/forceps-new-cropped-scrub.mp4"
             poster="assets/video/forceps-new-cropped-poster.jpg"
             data-src="assets/video/forceps-new-cropped-scrub.mp4"
             aria-label="Scroll-driven forceps animation">
@@ -658,7 +712,8 @@ function productCard(p){
   const first = p.variants[0] || {};
   const firstArticle = first.article || "";
   const filterText = Object.values(productFilters(p)).flat().join(" ").toLowerCase();
-  return `<article class="product-card reveal modern-card" data-name="${esc(textProduct(p,"name").toLowerCase())}" data-article="${esc(firstArticle)}" data-filter="${esc(filterText)}" data-id="${esc(p.id)}">
+  const qty = cartQtyForProduct(p.id);
+  return `<article class="product-card reveal modern-card ${qty ? "in-cart" : ""}" data-name="${esc(textProduct(p,"name").toLowerCase())}" data-article="${esc(firstArticle)}" data-filter="${esc(filterText)}" data-id="${esc(p.id)}">
     <a href="catalog.html?product=${encodeURIComponent(p.id)}" class="product-link-area">
       <div class="product-image">${imgTag(p.image, textProduct(p,"name"), "", p.fallbackImage || "assets/img/medical.svg")}</div>
       <div class="product-kicker">${esc(textProduct(p,"category"))}</div>
@@ -666,9 +721,17 @@ function productCard(p){
       <p>${esc(textProduct(p,"subcategory"))}</p>
       <div class="price">${t("price")}</div>
     </a>
-    <div class="buy-row"><span class="pill">${esc(firstArticle || (currentLang === "en" ? "on request" : "по запросу"))}</span><button class="cart-btn" type="button" data-add-cart data-product="${esc(p.id)}" data-variant="0" aria-label="${esc(t("add"))}">🛒</button></div>
+    <div class="card-cart-badge" data-card-cart-badge="${esc(p.id)}" ${qty ? "" : "hidden"}>${esc(cartQtyLabel(qty))}</div>
+    <div class="buy-row">
+      <span class="pill">${esc(firstArticle || (currentLang === "en" ? "on request" : "по запросу"))}</span>
+      <button class="cart-btn ${qty ? "in-cart" : ""}" type="button" data-add-cart data-product="${esc(p.id)}" data-variant="0" aria-label="${esc(qty ? cartQtyLabel(qty) : t("add"))}">
+        <span class="cart-btn-icon">🛒</span>
+        <span class="cart-btn-count" ${qty ? "" : "hidden"}>${qty ? esc(qty) : ""}</span>
+      </button>
+    </div>
   </article>`;
 }
+
 
 function initFilters(products){
   const search = $("#catalogSearch");
@@ -925,80 +988,103 @@ function initScrollVideoController(options){
   if(!section || !video) return;
 
   const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const source = video.getAttribute("src") || video.dataset.src;
   let duration = 0;
   let ticking = false;
-  let ready = false;
+  let lastTarget = -1;
 
-  function load(){
-    if(video.dataset.loaded) return;
-    if(video.dataset.src){
-      video.src = video.dataset.src;
-      video.dataset.loaded = "true";
-    }
-    video.preload = "auto";
+  function clamp(value, min, max){
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function ensureVideo(){
+    if(source && !video.getAttribute("src")) video.src = source;
     video.muted = true;
+    video.defaultMuted = true;
     video.playsInline = true;
-    try { video.load(); } catch(e) {}
+    video.preload = "auto";
+    video.controls = false;
+    video.loop = false;
+    try { video.pause(); } catch(e) {}
+    if(video.readyState < 1){
+      try { video.load(); } catch(e) {}
+    }
   }
 
   function updateDuration(){
-    duration = video.duration || 0;
-    ready = duration > 0;
+    if(Number.isFinite(video.duration) && video.duration > 0){
+      duration = video.duration;
+    }
   }
 
   function sectionProgress(){
     const rect = section.getBoundingClientRect();
-    const scrollRange = Math.max(1, section.offsetHeight - window.innerHeight);
-    return Math.min(1, Math.max(0, -rect.top / scrollRange));
+    const range = Math.max(1, section.offsetHeight - window.innerHeight);
+    return clamp(-rect.top / range, 0, 1);
   }
 
-  function setFrame(progress){
-    if(!ready) updateDuration();
-    if(!duration) return;
-    const target = Math.min(duration - 0.04, Math.max(0.02, progress * duration));
-    if(Math.abs(video.currentTime - target) > 0.018){
-      try { video.currentTime = target; } catch(e) {}
+  function seekTo(target){
+    if(!Number.isFinite(target)) return;
+    target = clamp(target, 0.001, Math.max(0.001, duration - 0.045));
+    if(Math.abs(lastTarget - target) < 0.012 && Math.abs(video.currentTime - target) < 0.05) return;
+    lastTarget = target;
+    try {
+      video.pause();
+      video.currentTime = target;
+    } catch(e) {
+      try {
+        if(video.fastSeek) video.fastSeek(target);
+      } catch(err) {}
     }
   }
 
-  function update(){
+  function render(){
     ticking = false;
-    setFrame(sectionProgress());
+    updateDuration();
+    if(!duration) return;
+    const progress = sectionProgress();
+    seekTo(progress * duration);
   }
 
-  function requestUpdate(){
+  function requestRender(){
     if(!ticking){
       ticking = true;
-      requestAnimationFrame(update);
+      requestAnimationFrame(render);
     }
   }
 
-  load();
+  ensureVideo();
 
-  video.addEventListener("loadedmetadata", () => {
-    updateDuration();
-    setFrame(0);
-    requestUpdate();
-  });
-
-  video.addEventListener("canplay", () => {
-    updateDuration();
-    requestUpdate();
+  ["loadedmetadata","loadeddata","durationchange","canplay","canplaythrough"].forEach(evt => {
+    video.addEventListener(evt, () => {
+      updateDuration();
+      requestRender();
+    });
   });
 
   if(reduced){
-    video.pause();
+    updateDuration();
+    seekTo(0.001);
     return;
   }
 
-  window.addEventListener("scroll", requestUpdate, { passive:true });
-  window.addEventListener("resize", requestUpdate);
-  requestUpdate();
+  window.addEventListener("scroll", requestRender, { passive:true });
+  window.addEventListener("resize", requestRender, { passive:true });
+  document.addEventListener("visibilitychange", requestRender);
 
-  // Small safety refreshes for Vercel/browser cache and slow metadata loading.
-  setTimeout(requestUpdate, 250);
-  setTimeout(requestUpdate, 800);
+  // Wake the decoder on browsers that ignore currentTime before metadata.
+  try {
+    const p = video.play();
+    if(p && p.then) p.then(() => { video.pause(); requestRender(); }).catch(() => requestRender());
+  } catch(e) {}
+
+  requestRender();
+  setTimeout(requestRender, 120);
+  setTimeout(requestRender, 360);
+  setTimeout(requestRender, 900);
+  setTimeout(requestRender, 1600);
 }
+
 
 function initMriScrollVideo(){
   initScrollVideoController({
