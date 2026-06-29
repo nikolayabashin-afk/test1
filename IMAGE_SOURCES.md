@@ -81,3 +81,14 @@ The forceps scrub file is cropped from the user-provided `Видеопроект
 - 21st.dev component library used as visual/UI inspiration only.
 - No proprietary 21st.dev code, logos, or exact component copies were included.
 - Added custom medical bento/dashboard section directly in `script.js` and `styles.css`.
+
+
+## UX modification note
+
+The 21st.dev-inspired bento/dashboard block was removed from the homepage.
+New workflow, trust, FAQ, category-card, and basket UI improvements are custom CSS/JS changes.
+
+
+## Personal data section
+
+No new images were added. The personal data consent page and contact checkbox are custom HTML/CSS/JS changes.

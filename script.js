@@ -29,6 +29,11 @@ const UI = {
     whatSend:"Что можно отправить", whatSendText:"ТЗ, артикулы, список оборудования, ссылку на закупку или описание клинической задачи.",
     nameField:"Ваше имя", company:"Компания", email:"Email", phone:"Телефон", selectCategory:"Выберите раздел", message:"Опишите задачу или вставьте артикулы",
     send:"Отправить запрос", quotePrefix:"Здравствуйте, хочу запросить КП на следующие позиции:", comment:"Комментарий:",
+    personalData:"Обработка персональных данных", consentTitle:"Согласие на обработку персональных данных",
+    consentCheckbox:"Я согласен(а) на обработку персональных данных в соответствии с согласием",
+    consentRequired:"Необходимо согласие на обработку персональных данных",
+    consentLead:"Перед отправкой заявки подтвердите согласие на обработку персональных данных. Без этого форма не будет отправлена.",
+    agreementLink:"Открыть текст согласия",
     categoriesTitle:"Разделы продукции", categoriesLead:"Кликайте по разделам и быстрым фильтрам. Добавляйте позиции в корзину и отправляйте запрос на КП.",
     aboutTitle:"Каталог и подбор медицинских изделий для B2B-задач", aboutLead:"Компактная демонстрационная версия сайта: вся номенклатура хранится в одном data-файле, а страницы формируются динамически.",
     catalogTitle:"Разделы медицинской продукции", catalogLead:"Выберите раздел, чтобы перейти к фильтрам, карточкам товаров и подробным страницам.",
@@ -52,6 +57,11 @@ const UI = {
     whatSend:"What you can send", whatSendText:"Technical requirements, articles, equipment lists, procurement links or a description of the clinical task.",
     nameField:"Your name", company:"Company", email:"Email", phone:"Phone", selectCategory:"Select category", message:"Describe the task or paste article numbers",
     send:"Send request", quotePrefix:"Hello, I would like to request a quote for the following items:", comment:"Comment:",
+    personalData:"Personal data processing", consentTitle:"Consent to personal data processing",
+    consentCheckbox:"I agree to personal data processing according to the consent text",
+    consentRequired:"Personal data processing consent is required",
+    consentLead:"Before sending the request, confirm consent to personal data processing. The form cannot be sent without it.",
+    agreementLink:"Open consent text",
     categoriesTitle:"Product directions", categoriesLead:"Click categories and quick filters. Add items to the basket and send a quote request.",
     aboutTitle:"Medical B2B catalog and product selection", aboutLead:"Compact demo version: the full catalog is stored in one data file and pages are rendered dynamically.",
     catalogTitle:"Medical product categories", catalogLead:"Choose a category to open filters, product cards and detailed pages.",
@@ -153,17 +163,39 @@ function buildCartMessage(){
   if(!cart.length) return "";
   const lines = [t("quotePrefix"), ""];
   cart.forEach((item, idx) => {
+    const category = currentLang === "en" ? (item.categoryEn || item.categoryRu || "") : (item.categoryRu || item.categoryEn || "");
+    const product = getProduct(item.productId);
+    const variant = product && product.variants ? product.variants[item.variantIndex] : null;
+    const note = variant ? textVariant(variant, "note") : "";
     lines.push(`${idx+1}. ${currentLang === "en" ? "Article" : "Артикул"}: ${item.article || (currentLang === "en" ? "on request" : "по запросу")}`);
     lines.push(`   ${currentLang === "en" ? "Name" : "Наименование"}: ${cartItemName(item)}`);
+    if(category) lines.push(`   ${currentLang === "en" ? "Category" : "Раздел"}: ${category}`);
     lines.push(`   ${currentLang === "en" ? "Quantity" : "Количество"}: ${item.qty || 1}`);
+    if(note && note !== "—") lines.push(`   ${currentLang === "en" ? "Note" : "Примечание"}: ${note}`);
     lines.push("");
   });
+  lines.push(currentLang === "en" ? "Requested documents: registration certificate / declaration / instructions if available." : "Необходимые документы: регистрационное удостоверение / декларация / инструкция при наличии.");
+  lines.push("");
   lines.push(t("comment"));
   return lines.join("\n");
 }
 function goQuoteFromCart(){
   localStorage.setItem("oldtech_prefill_quote", buildCartMessage());
   location.href = "contacts.html?quote=1";
+}
+async function copyCartMessage(){
+  const message = buildCartMessage();
+  if(!message){
+    showToast(t("basketEmpty"));
+    return;
+  }
+  try{
+    await navigator.clipboard.writeText(message);
+    showToast(currentLang === "en" ? "Request copied" : "Заявка скопирована");
+  } catch(e){
+    localStorage.setItem("oldtech_prefill_quote", message);
+    showToast(currentLang === "en" ? "Request saved for the form" : "Заявка сохранена для формы");
+  }
 }
 
 function showToast(message){
@@ -198,7 +230,7 @@ function footer(){
   <div class="footer-grid">
     <div><a class="logo foot-logo" href="index.html"><span>O</span><strong>OldTech</strong></a><p>${currentLang === "en" ? "Medical B2B catalog, product selection and quote request workflow." : "Медицинский B2B-каталог, подбор оборудования и расходных материалов под клинические задачи."}</p></div>
     <div><h4>${t("catalog")}</h4><a href="catalog.html">${currentLang === "en" ? "All categories" : "Все разделы"}</a><a href="contacts.html">${t("requestQuote")}</a></div>
-    <div><h4>${t("contacts")}</h4><a href="mailto:your@email.com">your@email.com</a><a href="contacts.html">${currentLang === "en" ? "Request form" : "Форма заявки"}</a></div>
+    <div><h4>${t("contacts")}</h4><a href="mailto:your@email.com">your@email.com</a><a href="contacts.html">${currentLang === "en" ? "Request form" : "Форма заявки"}</a><a href="personal-data.html">${t("personalData")}</a></div>
   </div>
   <div class="footer-note">${t("disclaimer")}</div>
 </footer>
@@ -209,13 +241,14 @@ ${cartDrawer()}
 
 function cartDrawer(){
   return `<div class="cart-backdrop" data-close-cart></div>
-<aside class="cart-drawer" aria-label="${t("basket")}">
+<aside class="cart-drawer upgraded-cart-drawer" aria-label="${t("basket")}">
   <div class="cart-head">
-    <div><p class="eyebrow">${t("basket")}</p><h3>${t("basket")}</h3></div>
+    <div><p class="eyebrow">${currentLang === "en" ? "Structured request" : "Структурированная заявка"}</p><h3>${t("basket")}</h3></div>
     <button type="button" class="drawer-close" data-close-cart>×</button>
   </div>
   <div class="cart-items"></div>
-  <div class="cart-actions">
+  <div class="cart-actions upgraded-cart-actions">
+    <button type="button" class="btn btn-secondary" data-copy-cart>${currentLang === "en" ? "Copy request" : "Скопировать"}</button>
     <button type="button" class="btn btn-secondary" data-clear-cart>${t("clear")}</button>
     <button type="button" class="btn btn-primary" data-quote-cart>${t("goQuote")}</button>
   </div>
@@ -230,18 +263,33 @@ function renderCartItems(){
     wrap.innerHTML = `<div class="cart-empty">${t("basketEmpty")}</div>`;
     return;
   }
-  wrap.innerHTML = cart.map(item => `
-    <div class="cart-item">
-      <div>
-        <b>${esc(cartItemName(item))}</b>
-        <small>${esc(item.article || (currentLang === "en" ? "article on request" : "артикул по запросу"))}</small>
-      </div>
-      <div class="cart-qty">
-        <button type="button" data-cart-dec="${esc(item.key)}">−</button>
-        <span>${esc(item.qty || 1)}</span>
-        <button type="button" data-cart-inc="${esc(item.key)}">+</button>
-      </div>
-      <button type="button" class="cart-remove" data-cart-remove="${esc(item.key)}">${t("remove")}</button>
+  const groups = {};
+  cart.forEach(item => {
+    const category = currentLang === "en" ? (item.categoryEn || item.categoryRu || "Catalog") : (item.categoryRu || item.categoryEn || "Каталог");
+    if(!groups[category]) groups[category] = [];
+    groups[category].push(item);
+  });
+  wrap.innerHTML = Object.entries(groups).map(([category, items]) => `
+    <div class="cart-group">
+      <div class="cart-group-title">${esc(category)}</div>
+      ${items.map(item => {
+        const product = getProduct(item.productId);
+        const variant = product && product.variants ? product.variants[item.variantIndex] : null;
+        const note = variant ? textVariant(variant, "note") : "";
+        return `<div class="cart-item upgraded-cart-item">
+          <div>
+            <b>${esc(cartItemName(item))}</b>
+            <small>${esc(item.article || (currentLang === "en" ? "article on request" : "артикул по запросу"))}</small>
+            ${note && note !== "—" ? `<em>${esc(note)}</em>` : ""}
+          </div>
+          <div class="cart-qty">
+            <button type="button" data-cart-dec="${esc(item.key)}">−</button>
+            <span>${esc(item.qty || 1)}</span>
+            <button type="button" data-cart-inc="${esc(item.key)}">+</button>
+          </div>
+          <button type="button" class="cart-remove" data-cart-remove="${esc(item.key)}">${t("remove")}</button>
+        </div>`;
+      }).join("")}
     </div>
   `).join("");
 }
@@ -267,6 +315,7 @@ function initCommonUI(){
     if(e.target.closest("[data-close-cart]")){ closeCart(); return; }
     if(e.target.closest("[data-clear-cart]")){ clearCart(); return; }
     if(e.target.closest("[data-quote-cart]")){ goQuoteFromCart(); return; }
+    if(e.target.closest("[data-copy-cart]")){ copyCartMessage(); return; }
 
     const add = e.target.closest("[data-add-cart]");
     if(add){
@@ -310,134 +359,120 @@ function categoryImage(title){
 }
 
 function renderCategories(){
-  return DATA.categories.map(c => `
-    <a class="cat-card reveal modern-card magnetic" href="catalog.html?cat=${encodeURIComponent(c.slug)}">
-      <h3>${esc(textCat(c,"title"))}</h3>
-      <div class="plus">+</div>
-      <p>${esc(textCat(c,"desc"))}</p>
-      ${imgTag(categoryImage(c.title), textCat(c,"title"), "", "assets/img/medical.svg")}
-      <div class="cat-meta"><span class="pill">${c.count} ${t("cards")}</span></div>
-    </a>
-  `).join("");
+  return DATA.categories.map(c => {
+    const stats = categoryStats(c);
+    return `<a class="cat-card reveal modern-card magnetic enterprise-cat-card" href="catalog.html?cat=${encodeURIComponent(c.slug)}">
+      <div class="cat-copy">
+        <div class="cat-topline"><span>${currentLang === "en" ? "Product direction" : "Направление"}</span><b>→</b></div>
+        <h3>${esc(textCat(c,"title"))}</h3>
+        <p>${esc(textCat(c,"desc"))}</p>
+        <div class="cat-meta upgraded-cat-meta">
+          <span class="pill">${stats.products} ${t("cards")}</span>
+          <span class="pill">${stats.articles} ${t("articles")}</span>
+        </div>
+      </div>
+      <div class="cat-image-frame">${imgTag(categoryImage(c.title), textCat(c,"title"), "", "assets/img/medical.svg")}</div>
+      <div class="cat-open">${currentLang === "en" ? "Open section" : "Открыть раздел"} →</div>
+    </a>`;
+  }).join("");
 }
 
 
 
-function medicalBentoSection(){
-  const isEn = currentLang === "en";
-  const labels = isEn ? {
-    eyebrow:"21st.dev-inspired medical UI block",
-    title:"Procurement cockpit for clinical teams",
-    lead:"A compact visual layer for hospitals and distributors: selected categories, request flow, documentation readiness, and service confidence in one premium dashboard-style section.",
-    badge:"Live catalog logic",
-    card1Title:"Fast selection",
-    card1Text:"Categories, article variants, filters, and basket stay connected to one quote request.",
-    card2Title:"Document-ready",
-    card2Text:"The request can include exact article numbers, quantities, and notes for procurement teams.",
-    card3Title:"Clinical reliability",
-    card3Text:"A clean trust block for certified equipment, consumables, service, and delivery coordination.",
-    cta:"Open catalog",
-    quote:"Request quote",
-    timeline:["Find category","Select article","Add to basket","Send request"],
-    stat1:"657",
-    stat1Text:"article rows",
-    stat2:"11",
-    stat2Text:"directions",
-    stat3:"24h",
-    stat3Text:"request workflow"
-  } : {
-    eyebrow:"Медицинский UI-блок в стиле 21st.dev",
-    title:"Панель подбора для клиник и закупок",
-    lead:"Премиальный dashboard-блок для медицинского сайта: категории, артикулы, корзина, готовность документов и заявка на КП собраны в один понятный сценарий.",
-    badge:"Живая логика каталога",
-    card1Title:"Быстрый подбор",
-    card1Text:"Категории, варианты артикулов, фильтры и корзина связаны с одной заявкой на КП.",
-    card2Title:"Готово для закупки",
-    card2Text:"В запрос можно передать точные артикулы, количество и комментарии для отдела закупок.",
-    card3Title:"Надёжность для клиники",
-    card3Text:"Акцент на оборудование, расходные материалы, сервис и координацию поставки.",
-    cta:"Открыть каталог",
-    quote:"Запросить КП",
-    timeline:["Выбор категории","Выбор артикула","Добавление в корзину","Отправка заявки"],
-    stat1:"657",
-    stat1Text:"строк артикулов",
-    stat2:"11",
-    stat2Text:"направлений",
-    stat3:"24ч",
-    stat3Text:"логика заявки"
+
+function categoryStats(c){
+  const products = DATA.products.filter(p => p.categorySlug === c.slug);
+  const articles = products.reduce((sum,p)=>sum + (p.variants ? p.variants.length : 0), 0);
+  return {
+    products: products.length || c.count || 0,
+    articles: articles || c.variants || 0
   };
+}
 
-  return `<section class="section med-bento-section" aria-label="${esc(labels.title)}">
-    <div class="med-bento-bg" aria-hidden="true"></div>
-    <div class="med-bento-wrap">
-      <div class="med-bento-head reveal">
-        <div>
-          <p class="eyebrow">${labels.eyebrow}</p>
-          <h2>${labels.title}</h2>
-        </div>
-        <p>${labels.lead}</p>
+function homeWorkflowSection(){
+  const isEn = currentLang === "en";
+  const steps = isEn ? [
+    ["01", "Choose a direction", "Open the medical product category that matches the clinical or procurement task."],
+    ["02", "Select exact articles", "Use filters, product pages, and variant rows to find the right article numbers."],
+    ["03", "Build the basket", "Collect items and quantities in one structured request."],
+    ["04", "Send for quote", "The contact form receives the selected items automatically."]
+  ] : [
+    ["01", "Выберите направление", "Откройте раздел медицинской продукции под клиническую или закупочную задачу."],
+    ["02", "Подберите артикулы", "Используйте фильтры, карточки и строки вариантов для точного выбора."],
+    ["03", "Соберите корзину", "Сложите позиции и количество в одну структурированную заявку."],
+    ["04", "Отправьте на КП", "Форма заявки автоматически получает выбранные позиции из корзины."]
+  ];
+
+  return `<section class="section procurement-flow-section">
+    <div class="procurement-wrap">
+      <div class="section-head reveal procurement-head">
+        <div><p class="eyebrow">${isEn ? "Procurement workflow" : "Сценарий закупки"}</p><h2>${isEn ? "From catalog to quote without extra steps" : "От каталога до КП без лишних шагов"}</h2></div>
+        <p>${isEn ? "A clearer medical procurement flow replaces the decorative dashboard: useful for hospitals, private clinics, distributors, and purchasing teams." : "Вместо декоративного dashboard-блока — понятный сценарий для больниц, частных клиник, дистрибьюторов и отделов закупок."}</p>
       </div>
+      <div class="workflow-steps reveal">
+        ${steps.map((s,i)=>`<article class="workflow-step">
+          <span>${s[0]}</span>
+          <h3>${s[1]}</h3>
+          <p>${s[2]}</p>
+          ${i < steps.length-1 ? `<i aria-hidden="true">→</i>` : ""}
+        </article>`).join("")}
+      </div>
+    </div>
+  </section>`;
+}
 
-      <div class="med-bento-grid reveal">
-        <article class="med-bento-card med-bento-main">
-          <div class="med-bento-topline">
-            <span>${labels.badge}</span>
-            <i></i>
-          </div>
-          <div class="med-cockpit">
-            <div class="med-cockpit-radar" aria-hidden="true">
-              <span></span><span></span><span></span>
-            </div>
-            <div class="med-cockpit-panel">
-              <div class="med-panel-bar"><b></b><b></b><b></b></div>
-              <h3>${isEn ? "Equipment request status" : "Статус подбора оборудования"}</h3>
-              <div class="med-progress-line"><span style="width:86%"></span></div>
-              <div class="med-timeline">
-                ${labels.timeline.map((item, i) => `<div class="${i < 3 ? "done" : ""}"><em>${String(i+1).padStart(2,"0")}</em><span>${item}</span></div>`).join("")}
-              </div>
-            </div>
-          </div>
-        </article>
+function documentationTrustSection(){
+  const isEn = currentLang === "en";
+  const cards = isEn ? [
+    ["Documents", "Registration certificates, declarations, instructions, product passports, and specification files can be prepared for a request."],
+    ["Configuration check", "The team can verify article lists, compatibility, and alternative positions before quotation."],
+    ["Delivery coordination", "The request format is suitable for B2B supply discussions, procurement lists, and distributor workflows."],
+    ["Service support", "For equipment categories, service coordination and technical clarification can be added to the request."]
+  ] : [
+    ["Документы", "Регистрационные документы, декларации, инструкции, паспорта изделий и спецификации можно подготовить под заявку."],
+    ["Проверка комплектации", "Можно уточнить список артикулов, совместимость и возможные аналоги до формирования КП."],
+    ["Координация поставки", "Формат заявки подходит для B2B-поставок, закупочных списков и работы с дистрибьюторами."],
+    ["Сервисное сопровождение", "По категориям оборудования можно добавить сервисную координацию и технические уточнения."]
+  ];
 
-        <article class="med-bento-card">
-          <small>${isEn ? "Catalog" : "Каталог"}</small>
-          <h3>${labels.card1Title}</h3>
-          <p>${labels.card1Text}</p>
-        </article>
+  return `<section class="section medical-trust-section">
+    <div class="trust-shell reveal">
+      <div class="trust-intro">
+        <p class="eyebrow">${isEn ? "For medical B2B" : "Для медицинского B2B"}</p>
+        <h2>${isEn ? "Documentation, supply and service logic" : "Документы, поставка и сервисная логика"}</h2>
+        <p>${isEn ? "The site should feel like a practical procurement tool, not only a visual catalog." : "Сайт должен ощущаться как практический инструмент для закупки, а не только визуальный каталог."}</p>
+      </div>
+      <div class="trust-grid">
+        ${cards.map(c=>`<article class="trust-card"><h3>${c[0]}</h3><p>${c[1]}</p></article>`).join("")}
+      </div>
+    </div>
+  </section>`;
+}
 
-        <article class="med-bento-card">
-          <small>${isEn ? "Quote" : "КП"}</small>
-          <h3>${labels.card2Title}</h3>
-          <p>${labels.card2Text}</p>
-        </article>
+function faqSection(){
+  const isEn = currentLang === "en";
+  const rows = isEn ? [
+    ["How do I request a quote?", "Open a category, add articles to the basket, then press “Request quote”. The selected items will be inserted into the contact form."],
+    ["Can I send my own article list?", "Yes. You can paste article numbers, a technical specification, or a procurement link into the message field."],
+    ["Can alternatives be selected?", "Yes. Add your task description and the team can suggest equivalent or compatible positions."],
+    ["Are documents included?", "Document availability depends on the real product and supplier data. The request can include a document checklist."],
+    ["Can equipment and consumables be sent together?", "Yes. The basket supports mixed categories, article rows, and quantities."]
+  ] : [
+    ["Как запросить КП?", "Откройте раздел, добавьте артикулы в корзину и нажмите «Оставить заявку». Позиции автоматически попадут в форму."],
+    ["Можно отправить свой список артикулов?", "Да. В сообщение можно вставить артикулы, ТЗ, ссылку на закупку или список оборудования."],
+    ["Можно подобрать аналоги?", "Да. Опишите задачу, и в заявке можно указать необходимость подбора совместимых или аналогичных позиций."],
+    ["Будут ли документы?", "Наличие документов зависит от реальной позиции и поставщика. В заявку можно включить чек-лист документов."],
+    ["Можно смешивать оборудование и расходники?", "Да. Корзина поддерживает разные разделы, строки артикулов и количество."]
+  ];
 
-        <article class="med-bento-card med-bento-stat">
-          <strong>${labels.stat1}</strong>
-          <span>${labels.stat1Text}</span>
-        </article>
-
-        <article class="med-bento-card med-bento-stat">
-          <strong>${labels.stat2}</strong>
-          <span>${labels.stat2Text}</span>
-        </article>
-
-        <article class="med-bento-card med-bento-wide">
-          <div>
-            <small>${isEn ? "Clinical trust" : "Доверие клиники"}</small>
-            <h3>${labels.card3Title}</h3>
-            <p>${labels.card3Text}</p>
-          </div>
-          <div class="med-mini-stack" aria-hidden="true"><span></span><span></span><span></span></div>
-        </article>
-
-        <article class="med-bento-card med-bento-action">
-          <strong>${labels.stat3}</strong>
-          <span>${labels.stat3Text}</span>
-          <div class="med-action-row">
-            <a class="btn btn-primary" href="catalog.html">${labels.cta}</a>
-            <a class="btn btn-secondary" href="contacts.html">${labels.quote}</a>
-          </div>
-        </article>
+  return `<section class="section faq-section">
+    <div class="faq-wrap">
+      <div class="section-head reveal">
+        <div><p class="eyebrow">${isEn ? "FAQ" : "Вопросы"}</p><h2>${isEn ? "Before sending a request" : "Перед отправкой заявки"}</h2></div>
+        <p>${isEn ? "Short answers for procurement teams and clinic administrators." : "Короткие ответы для закупщиков, администраторов клиник и технических специалистов."}</p>
+      </div>
+      <div class="faq-list reveal">
+        ${rows.map((r,i)=>`<details ${i===0 ? "open" : ""}><summary>${r[0]}</summary><p>${r[1]}</p></details>`).join("")}
       </div>
     </div>
   </section>`;
@@ -478,12 +513,15 @@ function renderHome(){
     </div>
   </section>
 
-  ${medicalBentoSection()}
+  ${homeWorkflowSection()}
+  ${documentationTrustSection()}
 
-  <section class="section">
+  <section class="section upgraded-catalog-section">
     <div class="section-head reveal"><div><p class="eyebrow">${t("catalog")}</p><h2>${t("categoriesTitle")}</h2></div><p>${t("categoriesLead")}</p></div>
-    <div class="category-grid">${renderCategories()}</div>
+    <div class="category-grid upgraded-category-grid">${renderCategories()}</div>
   </section>
+
+  ${faqSection()}
 </main>` + footer();
   initReveal();
   initCommonUI();
@@ -740,11 +778,145 @@ function renderAbout(){
   initCommonUI();
 }
 
-function renderContacts(){
-  const prefill = localStorage.getItem("oldtech_prefill_quote") || "";
-  document.body.innerHTML = header("contacts") + `<main id="top"><section class="page-hero reveal"><div class="breadcrumbs"><a href="index.html">${t("home")}</a> / ${t("contacts")}</div><p class="eyebrow">${t("quote")}</p><h1>${t("contactTitle")}</h1><p class="lead">${t("contactLead")}</p></section><section class="section" style="padding-top:28px"><div class="form-card reveal modern-panel"><div><h2>${t("whatSend")}</h2><p>${t("whatSendText")}</p><p><b>Email:</b> your@email.com</p><p><b>${t("phone")}:</b> +7 (000) 000-00-00</p><button type="button" class="btn btn-secondary" data-open-cart>🛒 ${t("basket")} (<span class="cart-count">${cartCount()}</span>)</button></div><form class="form" action="mailto:your@email.com" method="post" enctype="text/plain"><input name="name" placeholder="${esc(t("nameField"))}" required><input name="company" placeholder="${esc(t("company"))}"><input type="email" name="email" placeholder="${esc(t("email"))}" required><input name="phone" placeholder="${esc(t("phone"))}"><select name="category"><option>${esc(t("selectCategory"))}</option>${DATA.categories.map(c=>`<option>${esc(textCat(c,"title"))}</option>`).join("")}</select><textarea id="messageTextarea" name="message" placeholder="${esc(t("message"))}">${esc(prefill || buildCartMessage())}</textarea><button class="btn btn-primary" type="submit">${t("send")}</button></form></div></section></main>` + footer();
+
+function personalDataAgreementText(){
+  const isEn = currentLang === "en";
+  if(isEn){
+    return `
+      <h2>Consent to personal data processing</h2>
+      <p>This text is a template for a Russian-law personal data consent section. Before publication, replace the operator name, legal address, OGRN/INN, e-mail, storage period, and internal data-processing details with real company information.</p>
+      <h3>1. Operator</h3>
+      <p>Operator: OldTech LLC / ООО «OldTech» — replace with the real legal entity, address, OGRN, INN, and contact e-mail.</p>
+      <h3>2. Personal data processed</h3>
+      <p>The operator may process the following data submitted through the website form: name, company name, e-mail address, phone number, selected product category, message text, selected products/articles, quantity, and other information voluntarily provided by the user in the request.</p>
+      <h3>3. Purpose of processing</h3>
+      <p>The data is processed to receive and review the request, prepare a reply, clarify product selection, prepare a quotation, communicate with the user, and maintain internal request history.</p>
+      <h3>4. Processing actions</h3>
+      <p>The user consents to collection, recording, systematization, accumulation, storage, clarification, use, transfer within the operator’s organization or to persons involved in preparing the response, blocking, deletion, and destruction of personal data.</p>
+      <h3>5. Term and withdrawal</h3>
+      <p>The consent is valid until the purpose of processing is achieved or until withdrawal. The user may withdraw consent by sending a request to the operator’s contact e-mail. After withdrawal, data is deleted or anonymized unless storage is required by law.</p>
+      <h3>6. Confirmation</h3>
+      <p>By ticking the checkbox on the request form, the user confirms that the consent is specific, informed, and conscious, and that the user has read this text.</p>
+    `;
+  }
+  return `
+    <h2>Согласие на обработку персональных данных</h2>
+    <p><strong>Важно:</strong> это шаблон для сайта. Перед публикацией замените на реальные сведения оператора: юридическое лицо, адрес, ОГРН, ИНН, email, сроки хранения и внутренний порядок обработки данных.</p>
+    <h3>1. Оператор персональных данных</h3>
+    <p>Оператор: ООО «OldTech» — заменить на фактическое наименование юридического лица, адрес местонахождения, ОГРН, ИНН и контактный email оператора.</p>
+    <h3>2. Перечень персональных данных</h3>
+    <p>Пользователь даёт согласие на обработку следующих персональных данных, передаваемых через форму сайта: имя, наименование компании, адрес электронной почты, номер телефона, выбранный раздел продукции, текст сообщения, выбранные товары/артикулы, количество, а также иные сведения, добровольно указанные пользователем в заявке.</p>
+    <h3>3. Цели обработки</h3>
+    <p>Персональные данные обрабатываются для приёма и рассмотрения заявки, подготовки ответа, уточнения подбора медицинского оборудования и расходных материалов, подготовки коммерческого предложения, связи с пользователем и ведения внутренней истории обращений.</p>
+    <h3>4. Действия с персональными данными</h3>
+    <p>Пользователь даёт согласие на совершение следующих действий: сбор, запись, систематизация, накопление, хранение, уточнение, использование, передача внутри организации оператора и лицам, участвующим в подготовке ответа по заявке, блокирование, удаление и уничтожение персональных данных.</p>
+    <h3>5. Срок действия согласия и отзыв</h3>
+    <p>Согласие действует до достижения целей обработки или до момента его отзыва пользователем. Пользователь вправе отозвать согласие, направив обращение на контактный email оператора. После получения отзыва данные подлежат удалению или обезличиванию, если иное хранение не требуется по закону.</p>
+    <h3>6. Подтверждение согласия</h3>
+    <p>Проставляя галочку в форме заявки, пользователь подтверждает, что согласие является конкретным, информированным и сознательным, а также что пользователь ознакомился с настоящим текстом согласия.</p>
+  `;
+}
+
+function renderPersonalData(){
+  document.body.innerHTML = header("contacts") + `<main id="top">
+    <section class="page-hero reveal">
+      <div class="breadcrumbs"><a href="index.html">${t("home")}</a> / ${t("personalData")}</div>
+      <p class="eyebrow">${t("personalData")}</p>
+      <h1>${t("consentTitle")}</h1>
+      <p class="lead">${currentLang === "en" ? "Template consent text for requests sent through the website." : "Текст согласия для заявок, отправляемых через форму сайта."}</p>
+    </section>
+    <section class="section personal-data-section">
+      <div class="personal-data-doc reveal">
+        ${personalDataAgreementText()}
+        <div class="personal-data-actions">
+          <a class="btn btn-secondary" href="contacts.html">${currentLang === "en" ? "Back to request form" : "Вернуться к форме заявки"}</a>
+          <a class="btn btn-primary" href="catalog.html">${t("catalog")}</a>
+        </div>
+      </div>
+    </section>
+  </main>` + footer();
   initReveal();
   initCommonUI();
+}
+
+function renderContacts(){
+  const prefill = localStorage.getItem("oldtech_prefill_quote") || "";
+  const consentShort = currentLang === "en"
+    ? "We process only the data needed to answer your request: name, company, e-mail, phone, selected category and message text."
+    : "Мы обрабатываем только данные, необходимые для ответа на заявку: имя, компанию, email, телефон, выбранный раздел и текст сообщения.";
+  document.body.innerHTML = header("contacts") + `<main id="top">
+    <section class="page-hero reveal">
+      <div class="breadcrumbs"><a href="index.html">${t("home")}</a> / ${t("contacts")}</div>
+      <p class="eyebrow">${t("quote")}</p>
+      <h1>${t("contactTitle")}</h1>
+      <p class="lead">${t("contactLead")}</p>
+    </section>
+
+    <section class="section" style="padding-top:28px">
+      <div class="form-card reveal modern-panel contact-consent-layout">
+        <div>
+          <h2>${t("whatSend")}</h2>
+          <p>${t("whatSendText")}</p>
+          <p><b>Email:</b> your@email.com</p>
+          <p><b>${t("phone")}:</b> +7 (000) 000-00-00</p>
+          <button type="button" class="btn btn-secondary" data-open-cart>🛒 ${t("basket")} (<span class="cart-count">${cartCount()}</span>)</button>
+
+          <div class="personal-data-note">
+            <h3>${t("personalData")}</h3>
+            <p>${consentShort}</p>
+            <a href="personal-data.html">${t("agreementLink")} →</a>
+          </div>
+        </div>
+
+        <form class="form" data-contact-form action="mailto:your@email.com" method="post" enctype="text/plain">
+          <input name="name" placeholder="${esc(t("nameField"))}" required>
+          <input name="company" placeholder="${esc(t("company"))}">
+          <input type="email" name="email" placeholder="${esc(t("email"))}" required>
+          <input name="phone" placeholder="${esc(t("phone"))}">
+          <select name="category">
+            <option>${esc(t("selectCategory"))}</option>
+            ${DATA.categories.map(c=>`<option>${esc(textCat(c,"title"))}</option>`).join("")}
+          </select>
+          <textarea id="messageTextarea" name="message" placeholder="${esc(t("message"))}">${esc(prefill || buildCartMessage())}</textarea>
+
+          <label class="consent-check">
+            <input type="checkbox" name="personal_data_agree" value="yes" required data-personal-consent>
+            <span>${t("consentCheckbox")} <a href="personal-data.html" target="_blank" rel="noopener">${t("agreementLink")}</a>.</span>
+          </label>
+
+          <p class="consent-help">${t("consentLead")}</p>
+          <button class="btn btn-primary" type="submit" data-submit-request disabled>${t("send")}</button>
+        </form>
+      </div>
+    </section>
+  </main>` + footer();
+  initReveal();
+  initCommonUI();
+  initConsentForm();
+}
+
+
+function initConsentForm(){
+  const form = document.querySelector("[data-contact-form]");
+  if(!form) return;
+  const checkbox = form.querySelector("[data-personal-consent]");
+  const submit = form.querySelector("[data-submit-request]");
+  if(!checkbox || !submit) return;
+
+  const sync = () => {
+    submit.disabled = !checkbox.checked;
+    submit.classList.toggle("disabled", !checkbox.checked);
+  };
+  checkbox.addEventListener("change", sync);
+  form.addEventListener("submit", (e) => {
+    if(!checkbox.checked){
+      e.preventDefault();
+      showToast(t("consentRequired"));
+      checkbox.focus();
+      sync();
+    }
+  });
+  sync();
 }
 
 function initScrollVideoController(options){
@@ -849,6 +1021,7 @@ function initForcepsScrollVideo(){
 
 
 if(location.pathname.endsWith("about.html")) renderAbout();
+else if(location.pathname.endsWith("personal-data.html")) renderPersonalData();
 else if(location.pathname.endsWith("contacts.html")) renderContacts();
 else if(location.pathname.endsWith("catalog.html")) renderCatalog();
 else renderHome();

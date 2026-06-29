@@ -119,3 +119,41 @@ Latest changes:
 - The implementation is custom HTML/CSS inside the existing static site, not copied React code.
 - The section is bilingual RU/EN and adapts to the existing language switch.
 - It appears after the top scroll animation and before the category catalog.
+
+
+## Medical procurement UX update
+
+- Removed the previous 21st.dev-style medical bento/dashboard section from the homepage.
+- Replaced it with a clearer procurement workflow section:
+  1. choose direction
+  2. select article numbers
+  3. build the basket
+  4. send quote request
+- Added a medical B2B trust section covering documents, configuration check, delivery coordination, and service support.
+- Added an FAQ section for quote requests, article lists, alternatives, documents, and mixed equipment/consumables.
+- Upgraded category cards with stronger visual hierarchy, product/article counts, and clearer “open section” CTA.
+- Improved basket drawer:
+  - grouped selected items by category
+  - shows article, note, quantity
+  - added “Copy request” action
+  - improved generated request text with category and document checklist.
+
+
+## Personal data consent update
+
+- Added `personal-data.html`.
+- Added a required checkbox to the contact/request form.
+- The submit button is disabled until the user confirms consent.
+- Added client-side validation with a toast message if consent is missing.
+- Added a personal data notice block on the contacts page.
+- Added a footer link to the personal data consent page.
+- Added bilingual RU/EN consent text in `script.js`.
+
+Important: the consent text contains placeholder operator details. Before publication, replace:
+- legal entity name
+- legal address
+- OGRN
+- INN
+- contact email
+- storage period / internal processing details
+with the real company information and have the text checked by a lawyer if this will be used commercially.
